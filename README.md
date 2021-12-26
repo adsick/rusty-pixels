@@ -1,15 +1,16 @@
 # Rusty Pixels
 
-idk what I'm doing, but maybe it will become a game
+Idk what I'm doing, but maybe it will become a game
 
 ![image](https://user-images.githubusercontent.com/24528839/147421329-1b6efe9d-a725-4fcc-bb33-7c5359ec9b3a.png)
-
-![image](https://user-images.githubusercontent.com/24528839/147421333-8d7bc31b-458b-446e-bd63-24f83cd17a21.png)
 
 
 ## About
 
 This is powered by [pixels crate](https://github.com/parasyte/pixels) + winit and others, I'm planning integrating it with Bevy/Bevy ECS to see what's possible in terms of performance and efficiency.
+
+![image](https://user-images.githubusercontent.com/24528839/147421333-8d7bc31b-458b-446e-bd63-24f83cd17a21.png)
+
 
 ## How it works
 I allocate a lot of 'particles' which have properties like position, velocity, color, life etc. then simple brown-like motion comes into place and voila...

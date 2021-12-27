@@ -24,7 +24,7 @@ fn main() -> Result<(), Error> {
     let window = {
         let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
         WindowBuilder::new()
-            .with_title("Move Pixels")
+            .with_title("Rusty Pixels")
             .with_inner_size(size)
             .with_min_inner_size(size)
             .build(&event_loop)
@@ -70,9 +70,9 @@ fn main() -> Result<(), Error> {
 
             let delta = instant.elapsed().as_secs_f32();
             world.time += delta;
-            println!("particles: {}, fps: {:.2}", world.count(), world.avg_rate());
+            println!(" particles: {}, fps: {:.2}", world.count(), world.avg_rate());
 
-            std::thread::sleep(Duration::from_secs_f32(1.0/60.0).saturating_sub(instant.elapsed()));
+            std::thread::sleep(Duration::from_secs_f32(1.0/120.0).saturating_sub(instant.elapsed()));
 
             window.request_redraw();
         }

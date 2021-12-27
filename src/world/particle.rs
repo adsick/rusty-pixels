@@ -3,6 +3,9 @@ use rand::prelude::*;
 
 use crate::world::SCALE;
 
+pub const LIFE: i32 = 200;
+pub const TREE_H: i32 = 255;
+
 pub struct Particle {
     pub x: i32,
     pub y: i32,
@@ -26,20 +29,21 @@ impl Particle {
         Particle {
             x: rng.gen_range(0..SCALE as i32 * WIDTH as i32),
             y: rng.gen_range(0..SCALE as i32 * HEIGHT as i32),
-            z: 0,
+            z: 1,
             vx: 0,
             vy: 0,
-            vz: 0,
+            vz: 1,
             r: rng.gen_range(0x00..brightness),
             g: rng.gen_range(0x00..brightness),
             b: brightness,
-            life: 255,
+            life: LIFE,
         }
     }
 
     pub fn fork(&self) -> Self {
         Particle {
-            life: (self.life + 11).min(100),
+            life: (self.life + 11).min(LIFE/2),
+            z: self.z + 1,
             ..*self
         }
     }

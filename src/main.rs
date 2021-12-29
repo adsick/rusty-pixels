@@ -72,7 +72,7 @@ fn main() -> Result<(), Error> {
             world.time += delta;
             println!(" particles: {}, fps: {:.2}", world.count(), world.avg_rate());
 
-            std::thread::sleep(Duration::from_secs_f32(1.0/120.0).saturating_sub(instant.elapsed()));
+            std::thread::sleep(Duration::from_secs_f32(1.0/60.0).saturating_sub(instant.elapsed()));
 
             window.request_redraw();
         }

@@ -1,5 +1,5 @@
 mod particle;
-use std::{collections::VecDeque, time::Instant};
+use std::{collections::VecDeque, ops::MulAssign, time::Instant};
 
 use particle::*;
 
@@ -10,19 +10,20 @@ use rayon::prelude::*;
 
 use crate::{HEIGHT, WIDTH};
 
-const SCALE: u8 = 128;
+const SCALE: u8 = 32;
 
 // focal length parameter
-const FOCAL: f32 = 1.1;
+const FOCAL: f32 = 1.0;
+#[derive(Default)]
 pub struct World {
     particles: VecDeque<Particle>,
     dead: usize,
 
     //buffer: Array2D<[u8; 4]>,
-
     frame: u64,
     pub time: f32, //time in milliseconds
     pub decay_time: f32,
+    pub scrolling_time: f32,
     pub plotting_time: f32,
 }
 
@@ -34,11 +35,7 @@ impl World {
             dead: 0,
 
             //buffer: Array2D::filled_with([0, 0, 0, 0], HEIGHT as usize, WIDTH as usize),
-
-            frame: 0,
-            time: 0.0,
-            decay_time: 0.0,
-            plotting_time: 0.0,
+            ..Default::default()
         }
     }
 
@@ -50,10 +47,8 @@ impl World {
         self.frame as f32 / self.time
     }
 
-
-
     pub fn emit_particles(&mut self, num: u16) {
-        for _ in 0..num{
+        for _ in 0..num {
             self.particles.push_front(Particle::new_random(200));
         }
         // for i in 0..self.particles.len().saturating_sub(NUMBER) {
@@ -67,7 +62,7 @@ impl World {
     pub fn update(&mut self) {
         self.frame += 1;
         if self.frame % 1 == 0 {
-            self.emit_particles(10);
+            self.emit_particles(2);
         }
 
         if self.frame % 10 == 0 {
@@ -105,29 +100,29 @@ impl World {
             .particles
             .iter_mut()
             .filter_map(|p| {
-                p.x += p.vx as i32; //-(SCALE as i32) + ...
-                p.y += p.vy as i32;
+                p.x += -(SCALE as i32) + p.vx as i32; //-(SCALE as i32) + ...
+                p.y += (SCALE as i32) + p.vy as i32;
                 p.z += TREE_H / (10 + p.z);
                 let mut particle = None;
                 if p.life > 0 {
                     p.vx = rng.gen::<i8>() / 4; //rng.gen_range(-128..=2);
                     p.vy = rng.gen::<i8>() / 4; //rng.gen_range(-2..=2);
 
-                    // if p.x < 0 {
-                    //     p.x += SCALE as i32 * WIDTH as i32;
-                    // }
-                    // if p.x > SCALE as i32 * WIDTH as i32 {
-                    //     p.x -= SCALE as i32 * WIDTH as i32;
-                    // }
-                    // if p.y < 0 {
-                    //     p.y += SCALE as i32 * HEIGHT as i32;
-                    // }
-                    // if p.y > SCALE as i32 * HEIGHT as i32 {
-                    //     p.y -= SCALE as i32 * HEIGHT as i32;
-                    // }
+                    if p.x < 0 {
+                        p.x += SCALE as i32 * WIDTH as i32;
+                    }
+                    if p.x > SCALE as i32 * WIDTH as i32 {
+                        p.x -= SCALE as i32 * WIDTH as i32;
+                    }
+                    if p.y < 0 {
+                        p.y += SCALE as i32 * HEIGHT as i32;
+                    }
+                    if p.y > SCALE as i32 * HEIGHT as i32 {
+                        p.y -= SCALE as i32 * HEIGHT as i32;
+                    }
 
                     // if rng.gen_ratio(p.z as u32, TREE_H as u32 + p.life.max(0) as u32 + 3000) {
-                    if rng.gen_ratio(p.z as u32, 20*TREE_H as u32){                        
+                    if rng.gen_ratio(p.z as u32, 20 * TREE_H as u32) {
                         let mut new_particle = p.fork();
                         new_particle.vx = rng.gen(); //rng.gen_range(-10..=10);
                         new_particle.vy = rng.gen(); //rng.gen_range(-10..=10);
@@ -152,16 +147,41 @@ impl World {
         self.dead += new_dead;
     }
 
+    fn scroll(frame: &mut [u8], x: i32, y: i32) {
+        // horizontal scrolling
+        if x > 0 {
+            for line in frame.chunks_exact_mut(4 * WIDTH as usize) {
+                line.rotate_left(4 * x as usize)
+            }
+        } else {
+            for line in frame.chunks_exact_mut(4 * WIDTH as usize) {
+                line.rotate_left(4 * x.unsigned_abs() as usize)
+            }
+        }
+
+        //vertical scrolling
+        if y > 0 {
+            frame.rotate_right(4 * WIDTH as usize * y as usize);
+        } else {
+            frame.rotate_right(4 * WIDTH as usize * y.unsigned_abs() as usize);
+        }
+    }
+
     pub fn draw(&mut self, frame: &mut [u8]) {
         let mut instant = Instant::now();
 
         // here rayon actually gave me speed up from 9-12 ms to 2-3ms
-        frame.par_chunks_exact_mut(4).for_each(|p| {
-            let pix: Vec<u8> = p
-                .iter_mut()
-                .map(|pix| pix.saturating_sub(1)) //(*pix as f32 * 0.999999) as u8)
-                .collect(); //decay ef
-            p.clone_from_slice(&pix)
+        // decay effect
+        frame.par_iter_mut().for_each(|c| {
+            *c = c.saturating_sub(1);
+
+            // *c = (*c as f32 * 0.9999999) as u8;
+
+            // let pix: Vec<u8> = p
+            //     .iter_mut()
+            //     .map(|pix| pix.saturating_sub(1)) //(*pix as f32 * 0.999999) as u8)
+            //     .collect();
+            // p.clone_from_slice(&pix)
         });
 
         self.decay_time += instant.elapsed().as_secs_f32();
@@ -169,23 +189,12 @@ impl World {
         print!("decay: {:.3}ms ", decay * 1000.0);
         instant = Instant::now();
 
-        // horizontal scrolling
-        // todo test performance with rayon
-        // for line in frame.chunks_exact_mut(4 * WIDTH as usize) {
-        //     line.rotate_left(4)
-        // }
+        Self::scroll(frame, 1, 1);
 
-        //vertical scrolling
-        // need to use Array2D for that...
-
-        // todo averaging
-        // let scrolling = instant.elapsed().as_secs_f32();
-        // print!(
-        //     "scrolling: {:.3}ms ({:.3}) ",
-        //     scrolling * 1000.0,
-        //     scrolling / decay
-        // );
-        //instant = Instant::now();
+        self.scrolling_time += instant.elapsed().as_secs_f32();
+        let scrolling = self.scrolling_time / self.frame as f32;
+        print!("scrolling: {:.3}ms ", scrolling * 1000.0);
+        instant = Instant::now();
 
         for p in self.particles.iter() {
             //variable perspective projection factor, 1.0 means infinite 'focus' distance
@@ -212,7 +221,7 @@ impl World {
 
             let ind = 4 * (y * crate::WIDTH as i32 + x) as usize;
 
-            if x > 0 && x < WIDTH as i32 && y > 0 && y < HEIGHT as i32{
+            if x > 0 && x < WIDTH as i32 && y > 0 && y < HEIGHT as i32 {
                 frame.get_mut(ind..ind + 4).map(|pix| {
                     pix.copy_from_slice(&[
                         p.r,

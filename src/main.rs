@@ -1,5 +1,4 @@
 #![deny(clippy::all)]
-#![forbid(unsafe_code)]
 
 use std::time::Duration;
 
@@ -14,8 +13,8 @@ use winit_input_helper::WinitInputHelper;
 mod world;
 use world::*;
 
-pub const WIDTH: u32 = 640;
-pub const HEIGHT: u32 = 360;
+pub const WIDTH: usize = 640;
+pub const HEIGHT: usize = 360;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
@@ -34,7 +33,7 @@ fn main() -> Result<(), Error> {
     let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(WIDTH, HEIGHT, surface_texture)?
+        Pixels::new(WIDTH as u32, HEIGHT as u32, surface_texture)?
     };
     let mut world = World::new();
 

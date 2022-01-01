@@ -16,6 +16,10 @@ pub struct Particle {
     pub vy: i8,
     pub vz: i8,
 
+    pub px: usize,
+    pub py: usize,
+    pub pind: usize,
+
     pub r: u8,
     pub g: u8,
     pub b: u8,
@@ -33,27 +37,33 @@ impl Particle {
 
         // let t = FOCAL;
 
-        // let k = (t - (t - 1.0) * p.z as f32 / 255.0).max(1.00);
+        // let k = (t - (t - 1.0) * p.z as f32 / TREE_H as f32).max(1.00);
+
         // let x = WIDTH as i32 / 2 + (cx / k) as i32;
         // let y = HEIGHT as i32 / 2 + (cy / k) as i32;
 
         // x max (p.z = 0): k = FOCAL; x = WIDTH/2 + WIDTH/2/FOCAL = WIDTH/2(1 + 1/FOCAL)
         // x min (p.z = 0): k = FOCAL; x = WIDTH/2 + (-WIDTH)/2/FOCAL = WIDTH/2(1 - 1/FOCAL)
 
-        let cx = WIDTH as f32 * SCALE as f32 / 2.0;
-        let cy = HEIGHT as f32 * SCALE as f32 / 2.0;
 
-        let x_range = cx * FOCAL;
-        let y_range = cy * FOCAL;
+        //start from end projection of the particle
+        let px = rng.gen_range(0..WIDTH);
+        let py = rng.gen_range(0..HEIGHT);
 
-        let x = cx + rng.gen_range(-x_range..=x_range) ;
-        let y = cy + rng.gen_range(-y_range..=y_range) ;
+        let cx = (px as i32 - WIDTH as i32/2) as f32*FOCAL;
+        let cy = (py as i32 - HEIGHT as i32/2) as f32*FOCAL;
+
+        let x = (cx + WIDTH as f32/2.0) as i32 * SCALE as i32;
+        let y = (cy + HEIGHT as f32/2.0) as i32 * SCALE as i32;
 
         Particle {
             // x: rng.gen_range(0..(SCALE as f32 * WIDTH as f32) as i32),
             // y: rng.gen_range(0..(SCALE as f32 * HEIGHT as f32) as i32),
-            x: x as i32,
-            y: y as i32,
+            x,
+            y,
+            px,
+            py,
+            pind: py*WIDTH*4 + 4*px,
             z: 1,
             vx: 0,
             vy: 0,

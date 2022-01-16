@@ -11,12 +11,13 @@ use rayon::prelude::*;
 
 use crate::{HEIGHT, WIDTH};
 
-const SCALE: u8 = 32;
+const SCALE: u8 = 128;
 
 // focal length parameter
 const FOCAL: f32 = 1.0;
 #[derive(Default)]
 pub struct World {
+    buffer: Vec<Particle>,
     particles: VecDeque<Particle>,
     dead: usize,
 
@@ -35,6 +36,7 @@ pub struct World {
 impl World {
     pub fn new() -> Self {
         Self {
+            buffer: Vec::new(),
             particles: VecDeque::with_capacity(4096),
             dead: 0,
 
@@ -121,19 +123,19 @@ impl World {
     pub fn update(&mut self) {
         self.frame += 1;
 
-        self.emit_particles(2);
+        self.emit_particles(80);
 
         self.clear_particles();
 
         //self.move_particles();
 
-        let mut rng = thread_rng();
         let mut new_dead = 0;
-        let new_particles = self
-            .particles
-            .iter_mut()
-            .filter_map(|p| {
-                // code for moving particles was here in the past
+        let mut pars = std::mem::take(&mut self.particles);
+
+        let mut buf = std::mem::take(&mut self.buffer);
+
+        pars.par_iter_mut().for_each(
+            |p| {
                 p.x += -(SCALE as i32) * 0 + p.vx as i32;
                 p.y += (SCALE as i32) / 10 + p.vy as i32;
                 p.z += TREE_H / (10 + p.z);
@@ -156,36 +158,36 @@ impl World {
                 } else if p.life > 0 {
                     p.life = 0;
                 }
+            }
+        );
+        let mut rng = thread_rng();
+        for p in pars.iter_mut() {
+            if p.life > 0 {
+                p.vx = rng.gen::<i8>() / 4;
+                p.vy = rng.gen::<i8>() / 4;
 
-
-                
-                let mut particle = None;
-                if p.life > 0 {
-                    p.vx = rng.gen::<i8>() / 4;
-                    p.vy = rng.gen::<i8>() / 4;
-
-                    if rng.gen_ratio(p.z as u32, 20 * TREE_H as u32) {
-                        let mut new_particle = p.fork();
-                        new_particle.vx = rng.gen();
-                        new_particle.vy = rng.gen();
-                        particle = Some(new_particle);
-                    }
-                    p.life -= 1;
-                } else {
-                    if p.life == 0 {
-                        new_dead += 1;
-                        p.life -= 1;
-                    }
-                    p.vx = 0;
-                    p.vy = 0;
+                if rng.gen_ratio(p.z as u32, 20 * TREE_H as u32) {
+                    let mut new_particle = p.fork();
+                    new_particle.vx = rng.gen();
+                    new_particle.vy = rng.gen();
+                    buf.push(new_particle);
                 }
-                particle
-            })
-            .collect::<Vec<_>>();
-        // self.particles.append(&mut new_particles);
-        for new_particle in new_particles {
+                p.life -= 1;
+            } else {
+                if p.life == 0 {
+                    new_dead += 1;
+                    p.life -= 1;
+                }
+                p.vx = 0;
+                p.vy = 0;
+            }
+        }
+        self.particles = pars;
+
+        for new_particle in buf.drain(..) {
             self.particles.push_front(new_particle) // my current 'cleaning' system relies on the fact that newest particles are in front
         }
+        self.buffer = buf;
         self.dead += new_dead;
     }
 
@@ -329,6 +331,9 @@ impl World {
     // dc2: 0.145ms     scrl2: 0.005ms  plt2: 0.560ms (30.047 ns pp)    total: 27.272 ns    particles: 25050, fps: 1752.33      safe plot
     // dc2: 0.146ms     scrl2: 0.005ms  plt2: 0.502ms (26.283 ns pp)    total: 27.261 ns    particles: 24816, fps: 1755.98      unsafe plot
     // dc2: 0.146ms     scrl2: 0.005ms  plt2: 0.502ms (19.443 ns pp)    total: 26.908 ns    particles: 25104, fps: 1756.03      unsafe plot
+
+    // thanks to madwareus patch:
+    // dc: 0.118ms scrl: 0.008ms plt: 5.217ms (7.892 ns pp) total: 5.628 ns  particles: 958345, fps: 75.63
 
     pub fn draw(&mut self, frame: &mut [u8]) {
         let mut instant = Instant::now();

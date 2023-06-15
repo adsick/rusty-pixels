@@ -40,7 +40,7 @@ fn main() -> Result<(), Error> {
     event_loop.run(move |event, _, control_flow| {
         let instant = std::time::Instant::now(); 
         if let Event::RedrawRequested(_) = event {
-            world.draw(pixels.get_frame());
+            world.draw(pixels.frame_mut());
             if pixels
                 .render()
                 .map_err(|e| error!("pixels.render() failed: {}", e))
@@ -54,7 +54,7 @@ fn main() -> Result<(), Error> {
         // Handle input events
         if input.update(&event) {
             // Close events
-            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
+            if input.key_pressed(VirtualKeyCode::Escape) || input.close_requested() || input.destroyed() {
                 *control_flow = ControlFlow::Exit;
                 return;
             }
@@ -72,6 +72,7 @@ fn main() -> Result<(), Error> {
             println!(" particles: {}, fps: {:.2}", world.count(), world.avg_rate());
 
             std::thread::sleep(Duration::from_secs_f32(1.0/60.0).saturating_sub(instant.elapsed()));
+            // winit::event_loop::ControlFlow::WaitUntil(());
 
             window.request_redraw();
         }

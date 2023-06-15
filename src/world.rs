@@ -11,10 +11,10 @@ use rayon::prelude::*;
 
 use crate::{HEIGHT, WIDTH};
 
-const SCALE: u8 = 128;
+const SCALE: u8 = 16;
 
 // focal length parameter
-const FOCAL: f32 = 1.0;
+const FOCAL: f32 = 0.8;
 #[derive(Default)]
 pub struct World {
     buffer: Vec<Particle>,
@@ -54,7 +54,7 @@ impl World {
     }
 
     pub fn emit_particles(&mut self, num: u16) {
-        if self.frame % 1 == 0 {
+        if self.frame % 3 == 0 {
             for _ in 0..num {
                 self.particles.push_front(Particle::new_random(200));
             }
@@ -123,7 +123,7 @@ impl World {
     pub fn update(&mut self) {
         self.frame += 1;
 
-        self.emit_particles(80);
+        self.emit_particles(5);
 
         self.clear_particles();
 

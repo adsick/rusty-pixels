@@ -11,13 +11,13 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-env_logger = "0.9"
+env_logger = "0.10"
 log = "0.4"
-pixels = { path = "../.." }
-winit = "0.26"
-winit_input_helper = "0.11"
+pixels = "0.13"
+winit = "0.28"
+winit_input_helper = "0.14"
 rand = "0.8"
 rayon = "1.5"
 
-array2d = "0.2"
+array2d = "0.3"
 

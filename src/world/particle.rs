@@ -4,7 +4,7 @@ use rand::prelude::*;
 use crate::world::SCALE;
 use crate::world::FOCAL;
 
-pub const LIFE: i32 = 200;
+pub const LIFE: i32 = 220;
 pub const TREE_H: i32 = 255;
 
 pub struct Particle {
